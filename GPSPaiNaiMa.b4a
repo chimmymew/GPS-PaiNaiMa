@@ -1,0 +1,1338 @@
+﻿Version=6.3
+NumberOfModules=5
+Module1=Satellites
+Module2=Setup
+Module3=GPSPaths
+Module4=GPSSave
+Module5=GPSModule
+Build1=Default,B4A.GPS.PaiNaiMa
+ManifestCode=
+IconFile=
+NumberOfFiles=21
+File1=btngps0.png
+File2=btngps1.png
+File3=btngpspath0.png
+File4=btngpspath1.png
+File5=btngpspathline0.png
+File6=btngpspathline1.png
+File7=btngpspathmarker0.png
+File8=btngpspathmarker1.png
+File9=btnMapCoord0.png
+File10=btnMapCoord1.png
+File11=btnMapMove0.png
+File12=btnMapMove1.png
+File13=btnsatellites0.png
+File14=btnsatellites1.png
+File15=btnSetup0.png
+File16=btnSetup1.png
+File17=gps_path.bal
+File18=gps_save.bal
+File19=main.bal
+File20=satellites.bal
+File21=setup.bal
+NumberOfLibraries=7
+Library1=byteconverter
+Library2=core
+Library3=gps
+Library4=phone
+Library5=randomaccessfile
+Library6=webviewextras
+Library7=dialogs
+@EndOfDesignText@
+#Region Module Attributes
+	#FullScreen: True
+	#IncludeTitle: True
+	#ApplicationLabel: ไปไหนมาล่ะอิห่า
+	#VersionCode: 1
+	#VersionName: 
+	#SupportedOrientations: portrait
+	#CanInstallToExternalStorage: True
+#End Region
+
+'Activity module
+Sub Process_Globals
+	Dim ProgName As String								: ProgName = "ไปไหนมาล่ะอิห่า"
+	Dim ProgVersion As String							: ProgVersion = "V 1.6.1"
+	
+	Dim GPS1 As GPS
+	Dim PhoneAwake As PhoneWakeState
+	
+	Dim MapDispTimer As Timer
+	
+	Type Position (Latitude As Double, Longitude As Double)
+	
+	Dim MapCenter As Location
+	Dim MapOldCenter As Location
+	Dim MapSetDraggable As Boolean				: MapSetDraggable = False
+	Dim MapDefaultZoomLevelIndex As Int		: MapDefaultZoomLevelIndex = 1
+	Dim MapDefaultZoomLevel As Int				: MapDefaultZoomLevel = 11
+	Dim MapZoomLevel As Int								: MapZoomLevel = MapDefaultZoomLevel
+	Dim MapZoomLevelOld As Int						: MapZoomLevelOld = MapDefaultZoomLevel
+	Dim MapZoomCalculated As Boolean			: MapZoomCalculated = False
+	Dim MapDefaultLat	As Double						: MapDefaultLat = 46.15
+	Dim MapDefaultLng	As Double						: MapDefaultLng = 7.143
+	Dim MapLineWidthIndex As Int					: MapLineWidthIndex = 2
+	Dim MapLineWidth As Int								: MapLineWidth = 3
+	Dim MapLineColorIndex As Int					: MapLineColorIndex = 0
+	Dim MapLineColor As String						: MapLineColor = "ff0000"
+	Dim MapLineOpacityIndex As Int				: MapLineOpacityIndex = 1
+	Dim MapLineOpacity As Float						: MapLineOpacity = 0.50
+	Dim MapMarkerClickable As Boolean			: MapMarkerClickable = False
+	Dim MapMarkerDragable As Boolean			: MapMarkerDragable = False
+	Dim MapXCursor As Float								: MapXCursor = -1
+	Dim MapYCursor As Float								: MapYCursor = -1
+	
+	Type GPSLocation(Latitude As Double, Longitude As Double, Altitude As Double, Distance As Double, DistTot As Double, Time As Long, Speed As Float, Bearing As Float, Marker As Boolean)
+	Dim GPSPath As List
+	Dim GPSDir As String									: GPSDir = File.DirRootExternal			
+'	Dim GPSDir As String									: GPSDir = File.DirInternal			
+	Dim GPSPathFilename As String					: GPSPathFilename = "Test1.GPP"		
+	Dim GPSPathFilenameKML As String		
+	Dim GPSFilenameOld As String
+	Dim GPSPathComment As String
+	
+	Dim GPSPathLatMin, GPSPathLatMean, GPSPathLatMax As Double 
+	Dim GPSPathLngMin, GPSPathLngMean, GPSPathLngMax As Double
+	Dim GPSMinTime As Long								: GPSMinTime = 5000
+	Dim GPSMinDistance As Float						: GPSMinDistance = 10
+	Dim GPSDispSpeed As Boolean						: GPSDispSpeed = False
+	Dim GPSDispBearing As Boolean					: GPSDispBearing = False
+	Dim GPSDispWindrose As Boolean				: GPSDispWindrose = False
+	Dim GPSPathPreviuous As Location
+	Dim GPSPathDistTotPrev As Double
+	Dim GPSPathTime0 As Long
+	Dim GPSFilterDelta As Double					: GPSFilterDelta = 5
+	Dim GPSDistance As Double
+	Dim GPSMarkerIndexes As List
+	Dim flagscvGPSPath0 As Boolean				: flagscvGPSPath0 = False
+	Dim flagscvGPSPath1 As Boolean				: flagscvGPSPath1 = False
+
+	Dim GPS_On As Boolean									: GPS_On = False
+	Dim GPSPathModified As Boolean				: GPSPathModified = False
+	Dim Map_On As Boolean									: Map_On = False
+	Dim Sats_On As Boolean								: Sats_On = False
+	Dim Setup_On As Boolean								: Setup_On = False
+	
+	Dim MapScaleLat, MapScaleLng As Double
+	Dim MapX, MapY As Float
+	Dim TileSize As Int												: TileSize = 256
+	
+	Dim DispMapTypeControl As Boolean					: DispMapTypeControl = False
+	Dim DispMapTypeControlIDNumber As Int			: DispMapTypeControlIDNumber = 4
+	Dim DispMapTypeControlIDIndex As Int			: DispMapTypeControlIDIndex = 2
+	Dim DispMapTypeControlIDText(DispMapTypeControlIDNumber) As String
+		DispMapTypeControlIDText(0) = "ROADMAP"
+		DispMapTypeControlIDText(1) = "TERRAIN"
+		DispMapTypeControlIDText(2) = "SATELLITE"
+		DispMapTypeControlIDText(3) = "HYBRID"
+	Dim DispMapTypeControlID As String
+		DispMapTypeControlID = DispMapTypeControlIDText(DispMapTypeControlIDIndex)
+		
+	Dim DispMapZoomControl As Boolean					: DispMapZoomControl = False
+	Dim DispMapZoomControlTypeNumber As Int		: DispMapZoomControlTypeNumber = 3
+	Dim DispMapZoomControlTypeIndex As Int		: DispMapZoomControlTypeIndex = 2
+	Dim DispMapZoomControlTypeText(DispMapZoomControlTypeNumber) As String
+		DispMapZoomControlTypeText(0) = "DEFAULT"
+		DispMapZoomControlTypeText(1) = "SMALL"
+		DispMapZoomControlTypeText(2) = "LARGE"
+	Dim DispMapZoomControlType As String
+		DispMapZoomControlType = DispMapZoomControlTypeText(DispMapZoomControlTypeIndex)
+		
+	Dim DispMapScaleControl As Boolean	: DispMapScaleControl = False
+	Dim DispMapCenter As Boolean				: DispMapCenter = False
+	Dim DispMapMarkers As Boolean				: DispMapMarkers = False
+	Dim DispMapPolylne As Boolean				: DispMapPolylne = False
+	Dim ShowGPSOnMap As Boolean					: ShowGPSOnMap = True
+	Dim SaveGPSPath As Boolean					: SaveGPSPath = True
+	Dim DrawGPSPath As Boolean					: DrawGPSPath = True
+		
+	Dim AltitudeUnitNumber As Int				: AltitudeUnitNumber = 2	' number of Amplitude units
+	Dim AltitudeUnitIndex As Int				: AltitudeUnitIndex= 0
+	Dim AltitudeUnitRatio(AltitudeUnitNumber) As Double					' Amplitude unit ratios 1 = m
+		AltitudeUnitRatio(0) = 1
+		AltitudeUnitRatio(1) = 1 / 0.3048
+	Dim AltitudeUnitText(AltitudeUnitNumber) As String					' Amplitude unit texts
+		AltitudeUnitText(0) = "m"
+		AltitudeUnitText(1) = "ft"
+
+	Dim SpeedUnitNumber As Int					: SpeedUnitNumber = 3		' number of Speed units
+	Dim SpeedUnitIndex As Int						: SpeedUnitIndex = 0
+	Dim SpeedUnitRatio(SpeedUnitNumber) As Double								' Speed unit ratios 1 = m/s
+		SpeedUnitRatio(0) = 1
+		SpeedUnitRatio(1) = 3.6
+		SpeedUnitRatio(2) = 3.6 / 1.609344 
+	Dim SpeedUnitText(SpeedUnitNumber) As String								' Speed unit texts
+		SpeedUnitText(0) = "m/s"
+		SpeedUnitText(1) = "km/h"
+		SpeedUnitText(2) = "mile/h"
+
+	Dim DistanceUnitNumber As Int			: DistanceUnitNumber = 3	' number of Distance units
+	Dim DistanceUnitIndex As Int			: DistanceUnitIndex = 0
+	Dim DistanceUnitRatio(DistanceUnitNumber) As Double					' Distance unit ratios 1 = m
+		DistanceUnitRatio(0) = 1
+		DistanceUnitRatio(1) = 0.001
+		DistanceUnitRatio(2) = 0.001 / 1.609344
+	Dim DistanceUnitText(DistanceUnitNumber) As String					' Distance unit texts
+		DistanceUnitText(0) = "m"
+		DistanceUnitText(1) = "km"
+		DistanceUnitText(2) = "mile"
+		
+	Dim WindroseColor As Int					: WindroseColor = Colors.RGB(165, 42, 42)
+	Dim WindroseTicksColor As Int			: WindroseTicksColor = Colors.RGB(165, 42, 42)
+	Dim WindroseNeedleColor As Int		: WindroseNeedleColor = Colors.Red
+End Sub
+
+Sub Globals
+	Dim pnlDispGPSLatLng, pnlToolBox, pnlSaveGPS As Panel
+	
+	Dim MapViewer As WebView
+	Dim MapViewerExtra As WebViewExtras
+	
+	Dim btnSatellites, btnGPS, btnMap, btnMap1, btnSetup, pnlMap, pnlMainBackgound As Panel
+	Dim btnGPSPath, btnGPSPath1, btnGPSPath2, btnGPSPath3 As Panel
+	Dim pnlDispGPSAltitude, pnlDispGPSSpeed, pnlDispGPSBearing As Panel
+	Dim pnlDispGPSWindrose, pnlDispGPSNeedle, pnlGPSPathToolbox As Panel
+	
+	Dim cvsMap, cvsDispGPSWindrose, cvsDispGPSNeedle, cvsNeedle As Canvas
+	Dim rectMapPos As Rect
+	Dim imvNeedle As ImageView
+	Dim csvNeedle As Canvas
+	Dim bmpNeedle As Bitmap
+	Dim rectNeedleSrc, rectNeedleDest, rectDispGPSNeedle As Rect
+	
+	Dim lblToolTip As Label 
+	Dim lblLatitude, lblLongitude, lblAltitude, lblSpeed, lblBearing As Label
+	Dim lblLatitude0, lblLongitude0, lblAltitude0, lblSpeed0, lblBearing0 As Label
+	
+	Dim Phone1 As Phone
+End Sub
+
+Sub Activity_Create(FirstTime As Boolean)
+	Activity.LoadLayout("main")
+	If FirstTime = True Then
+		If File.Exists(File.DirAssets,"Test1.GPP") Then
+			File.Copy(File.DirAssets, "Test1.GPP", GPSDir,"Test1.GPP")
+		End If
+		If File.Exists(File.DirAssets,"Test2.GPP") Then
+			File.Copy(File.DirAssets, "Test2.GPP", GPSDir,"Test2.GPP")
+		End If
+		GPS1.Initialize("GPS1")
+		MapDispTimer.Initialize("MapDispTimer", 1000)
+		GPSPath.Initialize	' initialize the GPSPath list
+		MapCenter.Initialize
+		MapOldCenter.Initialize
+		GPSPathPreviuous.Initialize
+		
+		Dim lv As LayoutValues
+		lv = GetDeviceLayoutValues
+		TileSize = TileSize * lv.Scale
+
+		If File.Exists(File.DirInternal, "Setup.txt") Then
+			LoadSetup
+		End If
+
+		MapCenter.Initialize
+		MapOldCenter.Initialize
+		MapCenter.Latitude = MapDefaultLat
+		MapCenter.Longitude = MapDefaultLng
+		MapOldCenter = MapCenter
+		
+		If File.Exists(GPSDir, GPSPathFilename) = True Then
+			GPSModule.LoadPath
+		End If
+	End If
+
+	Activity.Title = ProgName & " " & ProgVersion
+	DateTime.DateFormat = "yyyy.MM.dd"
+	
+	MapViewer.Top = 0
+	MapViewer.Left = 0
+	MapViewer.Width = Activity.Width
+	MapViewer.Height = Activity.Height
+	MapViewerExtra.addJavascriptInterface(MapViewer, "B4A")
+	
+	pnlMap.Initialize("pnlMap")
+	Activity.AddView(pnlMap, MapViewer.Left, MapViewer.Top, MapViewer.Width, MapViewer.Height)
+	pnlMap.Color = Colors.Transparent
+	pnlMap.Visible = False
+	cvsMap.Initialize(pnlMap)
+	rectMapPos.Initialize(0, 10, 0, 10)
+	
+	pnlToolBox.Top = Activity.Height - pnlToolBox.Height
+	pnlToolBox.Left = 0
+	
+	pnlGPSPathToolbox.Top = pnlToolBox.Top - 3 * btnGPSPath.Height
+	pnlGPSPathToolbox.Left = btnGPSPath.Left
+	
+	btnMap1.Top = pnlToolBox.Top - btnMap1.Height
+	btnMap1.Left = btnMap.Left
+	
+	pnlMainBackgound.Left = (100%x - pnlMainBackgound.Width) / 2
+	pnlMainBackgound.Top = (pnlToolBox.Top + pnlDispGPSLatLng.Top + pnlDispGPSLatLng.Height - pnlMainBackgound.Height) / 2
+	pnlMainBackgound.SendToBack
+
+	imvNeedle.Initialize("")
+	Activity.AddView(imvNeedle, 0, 0, 20dip, 100dip)
+	
+	lblToolTip.Top = 0
+	lblToolTip.Left = 0
+	lblToolTip.BringToFront
+	lblToolTip.Visible = False
+	
+End Sub
+
+Sub Activity_Resume
+	Dim txt As String
+	Dim pnlTop As Float
+	
+	If DispMapTypeControl = True Or DispMapScaleControl = True Then
+		pnlTop = 40dip
+	Else
+		pnlTop = 0
+	End If
+	pnlDispGPSLatLng.Left = 0
+	pnlDispGPSLatLng.Top = pnlTop
+	pnlDispGPSAltitude.Top = pnlDispGPSLatLng.Top
+	pnlDispGPSBearing.Top = pnlDispGPSLatLng.Top + pnlDispGPSLatLng.Height
+	pnlDispGPSSpeed.Top = pnlDispGPSLatLng.Top + pnlDispGPSLatLng.Height
+	pnlDispGPSWindrose.Height = pnlToolBox.Top - pnlDispGPSSpeed.Top - pnlDispGPSSpeed.Height - 5dip
+	pnlDispGPSWindrose.Top = pnlDispGPSSpeed.Top + pnlDispGPSSpeed.Height - 5dip
+	pnlDispGPSWindrose.Width = pnlDispGPSWindrose.Height
+	pnlDispGPSNeedle.Width = pnlDispGPSWindrose.Height
+	pnlDispGPSNeedle.Height = pnlDispGPSWindrose.Height
+	pnlDispGPSWindrose.Left = (Activity.Width - pnlDispGPSWindrose.Width) / 2
+	pnlDispGPSWindrose.Visible = False
+	cvsDispGPSWindrose.Initialize(pnlDispGPSWindrose)
+	cvsDispGPSNeedle.Initialize(pnlDispGPSNeedle)
+	imvNeedle.Visible = False
+
+	If GPS_On = True Then
+		GPS1.Start(GPSMinTime, GPSMinDistance)
+	End If
+	
+	If MapCenter.IsInitialized = False Then
+		MapCenter.Initialize
+		MapCenter.Latitude = MapDefaultLat
+		MapCenter.Longitude = MapDefaultLng
+	End If
+	
+	If GPSPath.Size > 0 And MapZoomCalculated = False Then
+		CalcMapZoom
+	End If
+	
+	' sets the right image to bntMap
+	Dim bmd As BitmapDrawable
+	If Map_On = False Then
+		If MapSetDraggable = True Then
+			bmd.Initialize(LoadBitmap(File.DirAssets, "btnmapmove0.png"))
+		Else
+			bmd.Initialize(LoadBitmap(File.DirAssets, "btnmapcoord0.png"))
+		End If
+	Else
+		If MapSetDraggable = True Then
+			bmd.Initialize(LoadBitmap(File.DirAssets, "btnmapmove1.png"))
+		Else
+			bmd.Initialize(LoadBitmap(File.DirAssets, "btnmapcoord1.png"))
+		End If
+		MapShow
+	End If
+	btnMap.Background = bmd
+	
+	' sets the right image to btnGPSPath
+	Dim bmd As BitmapDrawable
+	If DispMapMarkers = True Then
+		bmd.Initialize(LoadBitmap(File.DirAssets, "btngpspathmarker0.png"))
+	Else If	DispMapPolylne = True Then
+		bmd.Initialize(LoadBitmap(File.DirAssets, "btngpspathline0.png"))
+	Else
+		bmd.Initialize(LoadBitmap(File.DirAssets, "btngpspath0.png"))
+	End If
+	btnGPSPath.Background = bmd
+	
+	Activity.Title = ProgName & " : " & ProgVersion
+	
+	InitWindrose
+	InitNeedle
+End Sub
+
+Sub Activity_Pause (UserClosed As Boolean)
+	If UserClosed And GPS_On = True Then
+		GPS1.Stop
+	End If
+	SaveSetup
+End Sub
+
+Sub Activity_KeyPress (KeyCode As Int) As Boolean 
+	Dim Answ As Int
+	Dim txt As String
+	
+	Activity.Title = ProgName & " : " & ProgVersion
+
+	Select KeyCode
+	Case KeyCodes.KEYCODE_BACK
+		txt = "ต้องการออกจากโปรแกรมหรือไม่"
+		Answ = Msgbox2(txt, "โปรดเลือก", "ตกลง", "", "ยกเลิก", Null)
+		If Answ = DialogResponse.NEGATIVE Then
+			Return True
+		Else
+			GPS1.Stop
+			SaveSetup
+			Return False	
+		End If
+	End Select
+End Sub
+
+Sub ToolTip(txt As String)
+	If txt = "" Then
+		lblToolTip.Text = ""
+		lblToolTip.Visible = False
+	Else
+		lblToolTip.Text = txt
+		lblToolTip.Visible = True
+	End If
+End Sub
+
+Sub MapDispTimer_Tick
+	' used to display the coordinates a short time
+	MapDispTimer.Enabled = False
+	MapViewer_MouseUp("0", "0")
+End Sub
+
+Sub MapViewer_Click(LatStr As String, LngStr As String)
+	' MouseDown event of the MapViewer WebView defined in MapDisp
+  Dim Lat, Lng As Double
+
+	Lat = LatStr
+	Lng = LngStr
+  
+	lblLatitude.Text = NumberFormat(Lat, 1, 6)
+	lblLongitude.Text = NumberFormat(Lng, 1, 6)
+	pnlDispGPSLatLng.Visible = True
+	DrawCursor(Lat, Lng)
+	MapDispTimer.Enabled = True
+End Sub
+
+Sub MapViewer_MouseDown(LatStr As String, LngStr As String)
+	' MouseDown event of the MapViewer WebView defined in MapDisp
+  Dim Lat, Lng As Double
+
+	Lat = LatStr
+	Lng = LngStr
+  
+	lblLatitude.Text = NumberFormat(Lat, 1, 6)
+	lblLongitude.Text = NumberFormat(Lng, 1, 6)
+	pnlDispGPSLatLng.Visible = True
+	DrawCursor(Lat, Lng)
+	If MapSetDraggable = True Then
+		MapDispTimer.Enabled = True
+	End If
+End Sub
+
+Sub MapViewer_MouseMove(LatStr As String, LngStr As String)
+	' MouseMove event of the MapViewer WebView defined in MapDisp
+  Dim Lat, Lng As Double
+
+	Lat = LatStr
+	Lng = LngStr
+  
+	lblLatitude.Text = NumberFormat(Lat, 1, 6)
+	lblLongitude.Text = NumberFormat(Lng, 1, 6)
+	pnlDispGPSLatLng.Visible = True
+	DrawCursor(Lat, Lng)
+End Sub
+
+Sub MapViewer_MouseUp(LatStr As String, LngStr As String)
+	' MouseUp event of the MapViewer WebView defined in MapDisp
+  Dim Lat, Lng As Double
+
+'	Lat = LatStr
+'	Lng = LngStr
+  
+'	lblLatitude.Text = NumberFormat(Lat, 1, 6)
+'	lblLongitude.Text = NumberFormat(Lng, 1, 6)
+	pnlDispGPSLatLng.Visible = False
+	DrawCursor(-1,-1)
+End Sub
+
+Sub MapViewer_CenterChanged(LatStr As String, LngStr As String)
+	' MouseMove event of the MapViewer WebView defined in MapDisp
+  Dim Lat, Lng As Double
+
+	MapCenter.Latitude = LatStr
+	MapCenter.Longitude = LngStr
+  
+	CalcMapScales
+End Sub
+
+Sub MapViewer_ZoomChanged(ZoomLevel As String)
+	' ZoomChanged event of the MapViewer WebView defined in MapDisp
+	MapZoomLevel = ZoomLevel
+	CalcMapScales
+End Sub
+
+Sub MapViewer_MapTypeControlChanged(MapControlID As String)
+	' maptypeid_changed event of the MapViewer WebView defined in MapDisp
+	DispMapTypeControlID = MapControlID.ToUpperCase
+End Sub
+
+Sub MapViewer_MarkerDragEnd(IndexStr As String, LatStr As String, LngStr As String)
+	' Marker DragEnd event of the MapViewer WebView defined in MapDisp
+  Dim Lat, Lng As Double
+	Dim Index As Int
+	Index = IndexStr
+	Lat = LatStr
+  Lng = LngStr
+
+	lblLatitude.Text = NumberFormat(Lat, 1, 6)
+	lblLongitude.Text = NumberFormat(Lng, 1, 6)
+	pnlDispGPSLatLng.Visible = True
+	
+	MapViewer_CenterChanged(Lat, Lng)
+	GPSPathModifPoint(Index, Lat, Lng)		
+
+'	MapShow
+End Sub
+
+Sub GPSPathModifPoint(Index As Int, Lat As Double, Lng As Double)
+	Dim GPSloc1, GPSloc2 As GPSLocation
+	Dim loc1, loc2 As Location
+	Dim lbl As Label
+	Dim n As Int
+	
+	' updates the GPS path list with the new lat, lng values
+	GPSloc1 = GPSPath.Get(Index)
+	GPSloc1.Latitude = Lat
+	GPSloc1.Longitude = Lng
+	GPSPath.Set(Index, GPSloc1)
+	
+	' calculates the new Distance, DistTot, Speed and Bearing values
+	' from the previous point to the new position of the moved point
+	If Index > 0 Then
+		GPSloc1 = GPSPath.Get(Index - 1)
+		GPSloc2 = GPSPath.Get(Index)
+		loc1.Initialize2(GPSloc1.Latitude, GPSloc1.Longitude)
+		loc2.Initialize2(GPSloc2.Latitude, GPSloc2.Longitude)
+		GPSloc2.Distance = loc1.DistanceTo(loc2)
+		GPSloc2.DistTot = GPSloc1.DistTot + GPSloc2.Distance
+		GPSloc2.Bearing = loc1.BearingTo(loc2)
+		GPSloc2.Speed = NumberFormat(GPSloc2.Distance / (GPSloc2.Time - GPSloc1.Time) * 1000, 1, 1)
+		GPSPath.Set(Index, GPSloc2)
+	End If
+
+	' calculates the new Distance, DistTot and Bearing values
+	' from the new position of the moved point to the next point
+	If Index < GPSPath.Size - 1 Then
+		GPSloc1 = GPSPath.Get(Index)
+		GPSloc2 = GPSPath.Get(Index + 1)
+		loc1.Initialize2(GPSloc1.Latitude, GPSloc1.Longitude)
+		loc2.Initialize2(GPSloc2.Latitude, GPSloc2.Longitude)
+		GPSloc2.Distance = loc1.DistanceTo(loc2)
+		GPSloc2.DistTot = GPSloc1.DistTot + GPSloc2.Distance
+		GPSloc2.Bearing = loc1.BearingTo(loc2)
+		GPSloc2.Speed = NumberFormat(GPSloc2.Distance / (GPSloc2.Time - GPSloc1.Time) * 1000, 1, 1)
+		GPSPath.Set(Index + 1, GPSloc2)
+
+	' calculates the new DistTot values for all points after the modified one
+		GPSloc1 = GPSPath.Get(Index)
+		For i = Index + 1 To GPSPath.Size - 1
+			GPSloc2 = GPSPath.Get(i)
+			GPSloc2.DistTot = GPSloc1.DistTot + GPSloc2.Distance
+			GPSPath.Set(i, GPSloc2)
+			GPSloc1 = GPSloc2
+		Next
+	End If
+End Sub
+
+Sub btnSatellites_Touch(Action As Int, x As Float, y As Float)
+	Dim bmd As BitmapDrawable
+
+	Select Action
+	Case Activity.ACTION_DOWN
+		ToolTip("แสดงดาวเทียม")
+		bmd.Initialize(LoadBitmap(File.DirAssets, "btnsatellites1.png"))
+		btnSatellites.Background = bmd
+	Case Activity.ACTION_UP
+		If x > 0 And x < btnSatellites.Width  And y > 0 And y < btnSatellites.Height Then
+			If GPS_On = False Then
+				GPS1.Start(GPSMinTime, GPSMinDistance)
+			End If
+			Sats_On = True
+			StartActivity("Satellites")
+		End If
+		bmd.Initialize(LoadBitmap(File.DirAssets, "btnsatellites0.png"))
+		btnSatellites.Background = bmd
+		ToolTip("")
+	End Select
+End Sub
+
+Sub btnSetup_Touch(Action As Int, x As Float, y As Float)
+	Dim bmd As BitmapDrawable
+
+	Select Action
+	Case Activity.ACTION_DOWN
+		ToolTip("แสดงการตั้งค่า")
+		bmd.Initialize(LoadBitmap(File.DirAssets, "btnsetup1.png"))
+		btnSetup.Background = bmd
+	Case Activity.ACTION_UP
+		If x > 0 And x < btnSetup.Width  And y > 0 And y < btnSetup.Height Then
+			StartActivity("Setup")
+		End If
+		bmd.Initialize(LoadBitmap(File.DirAssets, "btnsetup0.png"))
+		btnSetup.Background = bmd
+		ToolTip("")
+	End Select
+End Sub
+
+Sub btnGPS_Touch(Action As Int, x As Float, y As Float)
+	Dim bmd As BitmapDrawable
+	
+	Select Action
+	Case Activity.ACTION_DOWN
+		If GPS_On = False Then
+			ToolTip("ใช้งานจีพีเอส")
+			bmd.Initialize(LoadBitmap(File.DirAssets, "btngps1.png"))
+		Else
+			ToolTip("หยุดจีพีเอส")
+			bmd.Initialize(LoadBitmap(File.DirAssets, "btngps0.png"))
+		End If
+		btnGPS.Background = bmd
+	Case Activity.ACTION_UP
+		If x > 0 And x < btnGPS.Width  And y > 0 And y < btnGPS.Height Then
+			GPS_On = Not(GPS_On)
+			If GPS_On = False Then
+				bmd.Initialize(LoadBitmap(File.DirAssets, "btngps0.png"))
+				GPS1.Stop
+				PhoneAwake.ReleaseKeepAlive
+				If GPSPath.Size > 0 Then
+					cvsMap.DrawRect(rectMapPos, Colors.Transparent, True, 1)
+					pnlMap.Invalidate2(rectMapPos)
+				
+					If SaveGPSPath = True Then
+						StartActivity(GPSSave)
+					End If
+				Else
+					Msgbox("ไม่มมีจุดเส้นทาง", "เส้นทางที่บันทึก")
+					GPSModule.LoadPath
+					MapZoomLevel = MapZoomLevelOld
+					MapCenter = MapOldCenter
+					MapShow
+				End If
+			Else
+				bmd.Initialize(LoadBitmap(File.DirAssets, "btngps1.png"))
+				If GPS1.GPSEnabled = False Then
+					ToastMessageShow("โปรดเปิดจีพีเอส" & CRLF & "กดปุ่ม กลับ เพื่อดำเนินการต่อ", True)
+					StartActivity(GPS1.LocationSettingsIntent)
+				End If
+				GPSPath.Initialize
+				If Map_On Then
+					MapZoomLevelOld = MapZoomLevel
+					MapOldCenter = MapCenter
+					MapZoomLevel = MapDefaultZoomLevel
+					MapCenter.Latitude = MapDefaultLat
+					MapCenter.Longitude = MapDefaultLng
+					MapShow
+				End If
+				PhoneAwake.KeepAlive(False)
+  			lblLatitude.Text = "- - -"
+			  lblLongitude.Text = "- - -"
+				lblAltitude.Text = "- - -"
+				lblBearing.Text = "- - -"
+				lblSpeed.Text = "- - -"
+				
+				GPS1.Start(GPSMinTime, GPSMinDistance)
+			End If
+			pnlDispGPSLatLng.Visible = GPS_On
+			pnlDispGPSAltitude.Visible = GPS_On
+			pnlDispGPSSpeed.Visible = GPS_On And GPSDispSpeed
+			pnlDispGPSBearing.Visible = GPS_On And GPSDispBearing
+			pnlDispGPSWindrose.Visible = GPS_On And GPSDispWindrose
+			pnlMainBackgound.Visible = Not(pnlDispGPSWindrose.Visible)
+			btnGPS.Background = bmd
+		End If
+		ToolTip("")
+	End Select
+End Sub
+
+Sub btnMap_Touch(Action As Int, x As Float, y As Float)
+	Dim bmd, bmd1 As BitmapDrawable
+
+	Select Action
+	Case Activity.ACTION_DOWN
+		If Map_On = False Then
+			ToolTip("แสดงแผนที่")
+			If MapSetDraggable = True Then
+				bmd.Initialize(LoadBitmap(File.DirAssets, "btnmapmove1.png"))
+			Else
+				bmd.Initialize(LoadBitmap(File.DirAssets, "btnmapcoord1.png"))
+			End If
+		Else
+			ToolTip("ซ่อนแผนที่")
+			If MapSetDraggable = True Then
+				bmd.Initialize(LoadBitmap(File.DirAssets, "btnmapmove0.png"))
+				bmd1.Initialize(LoadBitmap(File.DirAssets, "btnmapcoord0.png"))
+			Else
+				bmd.Initialize(LoadBitmap(File.DirAssets, "btnmapcoord0.png"))
+				bmd1.Initialize(LoadBitmap(File.DirAssets, "btnmapmove0.png"))
+			End If
+			btnMap1.Background = bmd1
+			btnMap1.Visible = True
+		End If
+		btnMap.Background = bmd
+		DoEvents
+	Case Activity.ACTION_MOVE
+		If x > 0 And x < btnMap.Width  And y > -btnMap.Height And y < 0 Then
+			If MapSetDraggable = True Then
+				bmd1.Initialize(LoadBitmap(File.DirAssets, "btnmapcoord1.png"))
+				ToolTip("แสดงตำแหน่ง")
+			Else
+				bmd1.Initialize(LoadBitmap(File.DirAssets, "btnmapmove1.png"))
+				ToolTip("เลื่อนไปมาได้")
+			End If
+		Else If x > 0 And x < btnMap.Width  And y > 0 And y < btnMap.Height Then
+			If MapSetDraggable = True Then
+				bmd1.Initialize(LoadBitmap(File.DirAssets, "btnmapcoord0.png"))
+			Else
+				bmd1.Initialize(LoadBitmap(File.DirAssets, "btnmapmove0.png"))
+			End If
+			If Map_On = False Then
+				ToolTip("แสดงแผนที่")
+			Else
+				ToolTip("ซอนแผนที่")
+			End If
+		Else
+			If MapSetDraggable = True Then
+				bmd1.Initialize(LoadBitmap(File.DirAssets, "btnmapcoord0.png"))
+			Else
+				bmd1.Initialize(LoadBitmap(File.DirAssets, "btnmapmove0.png"))
+			End If
+			If Map_On = False Then
+				ToolTip("แสดงแผนที่")
+			Else
+				ToolTip("ซ่อนแผนที่")
+			End If
+		End If
+		btnMap1.Background = bmd1
+	Case Activity.ACTION_UP
+		If x > 0 And x < btnMap.Width  And y > -btnMap.Height And y < 0 Then
+			MapSetDraggable = Not(MapSetDraggable)
+		Else If x > 0 And x < btnMap.Width  And y > 0 And y < btnMap.Height Then
+			Map_On = Not(Map_On)
+		End If
+		
+		btnMap1.Visible = False
+		ToolTip("")
+		DoEvents
+
+		If Map_On = False Then
+			If MapSetDraggable = True Then
+				bmd.Initialize(LoadBitmap(File.DirAssets, "btnmapmove0.png"))
+			Else
+				bmd.Initialize(LoadBitmap(File.DirAssets, "btnmapcoord0.png"))
+			End If
+			MapViewer.Visible = False
+			pnlMap.Visible = False
+			btnMap.Background = bmd
+		Else
+			If MapSetDraggable = True Then
+				bmd.Initialize(LoadBitmap(File.DirAssets, "btnmapmove1.png"))
+			Else
+				bmd.Initialize(LoadBitmap(File.DirAssets, "btnmapcoord1.png"))
+			End If
+			btnMap.Background = bmd
+			DoEvents
+			MapShow
+			MapViewer.Visible = True
+			pnlMap.Visible = True
+		End If
+	End Select
+End Sub
+
+Sub btnGPSPath_Touch(Action As Int, x As Float, y As Float)
+	Dim bmd, bmd1, bmd2, bmd3 As BitmapDrawable
+
+	Select Action
+	Case Activity.ACTION_DOWN
+		ToolTip("แสดงจุดเส้นทาง")
+		bmd.Initialize(LoadBitmap(File.DirAssets, "btngpspath1.png"))
+		btnGPSPath.Background = bmd
+		If Map_On = True Then
+			pnlGPSPathToolbox.Visible = True
+		End If
+	Case Activity.ACTION_MOVE
+		If x > 0 And x < btnGPSPath.Width And y > -3 * btnGPSPath.Height And y < -2 * btnGPSPath.Height Then
+				bmd3.Initialize(LoadBitmap(File.DirAssets, "btngpspathmarker1.png"))
+				bmd2.Initialize(LoadBitmap(File.DirAssets, "btngpspathline0.png"))
+				bmd1.Initialize(LoadBitmap(File.DirAssets, "btngpspath0.png"))
+				ToolTip("แสดงเส้นและจุด")
+		Else If x > 0 And x < btnGPSPath.Width And y > -2 * btnGPSPath.Height And y < - btnGPSPath.Height Then
+				bmd3.Initialize(LoadBitmap(File.DirAssets, "btngpspathmarker0.png"))
+				bmd2.Initialize(LoadBitmap(File.DirAssets, "btngpspathline1.png"))
+				bmd1.Initialize(LoadBitmap(File.DirAssets, "btngpspath0.png"))
+				ToolTip("แสดงเส้นอย่างเดียว")
+		Else If x > 0 And x < btnGPSPath.Width And y > -btnGPSPath.Height And y < 0 Then
+				bmd3.Initialize(LoadBitmap(File.DirAssets, "btngpspathmarker0.png"))
+				bmd2.Initialize(LoadBitmap(File.DirAssets, "btngpspathline0.png"))
+				bmd1.Initialize(LoadBitmap(File.DirAssets, "btngpspath1.png"))
+				ToolTip("ไม่แสดงทั้งเส้นและจุด")
+		Else
+			bmd3.Initialize(LoadBitmap(File.DirAssets, "btngpspathmarker0.png"))
+			bmd2.Initialize(LoadBitmap(File.DirAssets, "btngpspathline0.png"))
+			bmd1.Initialize(LoadBitmap(File.DirAssets, "btngpspath0.png"))
+			ToolTip("แสดงจุดเส้นทาง")
+		End If
+		btnGPSPath3.Background = bmd3
+		btnGPSPath2.Background = bmd2
+		btnGPSPath1.Background = bmd1
+	Case Activity.ACTION_UP
+		If x > 0 And x < btnGPSPath.Width Then
+			If y > -3 * btnGPSPath.Height And y < -2 * btnGPSPath.Height Then
+				DispMapMarkers = True
+				DispMapPolylne = True
+				MapShow
+			Else If y > -2 * btnGPSPath.Height And y < -btnGPSPath.Height Then
+				DispMapMarkers = False
+				DispMapPolylne = True
+				MapShow
+			Else If y > -btnGPSPath.Height And y < 0 Then
+				DispMapMarkers = False
+				DispMapPolylne = False
+				MapShow
+			Else If y > 0 And y < btnGPSPath.Height Then
+				StartActivity("GPSPaths")
+			End If
+		End If
+		If DispMapMarkers = True Then
+			bmd.Initialize(LoadBitmap(File.DirAssets, "btngpspathmarker0.png"))
+		Else If	DispMapPolylne = True Then
+			bmd.Initialize(LoadBitmap(File.DirAssets, "btngpspathline0.png"))
+		Else
+			bmd.Initialize(LoadBitmap(File.DirAssets, "btngpspath0.png"))
+		End If
+		
+		ToolTip("")
+		pnlGPSPathToolbox.Visible = False
+		btnGPSPath.Background = bmd
+	End Select
+End Sub
+
+Sub	pnlGPSPathToolbox_Touch(Action As Int, x As Float, y As Float) As Boolean
+	' Dummy routine to avoid buttons on the main page to raise an event
+	Return True
+End Sub
+
+Sub CalcMapZoom
+	' Calculates the bounds of a GPS path and the zoom level
+	Dim i As Int
+	Dim Scale As Double
+	Dim Scale0 As Double
+	
+	GPSPathLngMax = -180
+	GPSPathLngMin = 180
+	GPSPathLatMax = -90
+	GPSPathLatMin = 90
+	
+	' calculate the min and max lat, lng values of the GPS path
+	For i = 0 To GPSPath.Size -1
+		Dim loc As GPSLocation
+		loc = GPSPath.Get(i)
+		GPSPathLngMax = Max(GPSPathLngMax, loc.Longitude)
+		GPSPathLngMin = Min(GPSPathLngMin, loc.Longitude)
+		GPSPathLatMax = Max(GPSPathLatMax, loc.Latitude)
+		GPSPathLatMin = Min(GPSPathLatMin, loc.Latitude)
+	Next
+	
+	GPSPathLngMean = (GPSPathLngMax + GPSPathLngMin) / 2
+	GPSPathLatMean = (GPSPathLatMax + GPSPathLatMin) / 2
+	
+	MapZoomLevel = 20
+	Scale0 = MapViewer.Width / TileSize * 360 
+	If (GPSPathLngMax - GPSPathLngMin) / MapViewer.Width > (GPSPathLatMax - GPSPathLatMin) / MapViewer.Height / CosD(GPSPathLatMean) Then
+		Scale = Scale0 / Power(2, MapZoomLevel)
+		Do While Scale <= GPSPathLngMax - GPSPathLngMin
+			MapZoomLevel = MapZoomLevel - 1
+			Scale = Scale0 / Power(2, MapZoomLevel)
+		Loop
+	Else
+		Scale0 = Scale0 / CosD(GPSPathLatMean)
+		Scale = Scale0 / Power(2, MapZoomLevel)
+		Do While Scale <= GPSPathLatMax - GPSPathLatMin
+			MapZoomLevel = MapZoomLevel - 1
+			Scale = Scale0 / Power(2, MapZoomLevel)
+		Loop
+	End If
+	CalcMapScales
+	MapZoomCalculated = True
+End Sub
+
+Sub CalcMapScales
+	' Calculates the map scales
+	MapScaleLng = 360 / Power(2, MapZoomLevel) / TileSize 
+	MapScaleLat = MapScaleLng * CosD(MapCenter.Latitude)
+End Sub
+
+Sub MapShow
+	' Shows the map depending on the setup options
+	If Map_On = True Then 
+		MapViewer.Visible = True
+		pnlMap.Visible = True
+		If DispMapPolylne = True Or DispMapMarkers = True Then
+			MapCenter.Latitude = GPSPathLatMean
+			MapCenter.Longitude = GPSPathLngMean
+		Else
+			MapCenter.Latitude = MapDefaultLat
+			MapCenter.Longitude = MapDefaultLng
+		End If
+	 	If ShowGPSOnMap = True And GPS_On = True Then 
+			MapDisp(MapCenter.Latitude, MapCenter.Longitude, MapSetDraggable, MapZoomLevel, DispMapTypeControl, DispMapTypeControlID, DispMapZoomControl, "LEFT_CENTER", DispMapZoomControlType, DispMapScaleControl, "TOP_RIGHT", DispMapCenter, GPSPath, False, False, False, False, MapLineColor, MapLineOpacity, MapLineWidth)
+		Else
+			MapDisp(MapCenter.Latitude, MapCenter.Longitude, MapSetDraggable, MapZoomLevel, DispMapTypeControl, DispMapTypeControlID, DispMapZoomControl, "LEFT_CENTER", DispMapZoomControlType, DispMapScaleControl, "TOP_RIGHT", DispMapCenter, GPSPath, DispMapMarkers, MapMarkerClickable, MapMarkerDragable, DispMapPolylne, MapLineColor, MapLineOpacity, MapLineWidth)
+		End If
+	End If
+End Sub
+
+Sub MapDisp(CenterLat As Float, CenterLng As Float, MapDraggable As Boolean, Zoom As Int, MapTypeControl As Boolean, MapTypeControlID As String, DispZoomControl As Boolean, ZoomControlPosition As String, ZoomControlStyle As String, DispScaleControl As Boolean, ScaleControlPosition As String, DispMarkerCenter As Boolean, MarkerPos As List, DispMarkers As Boolean, MarkersClickable As Boolean, MarkersDragable As Boolean, DispPolyline As Boolean, PolyLineColor As String, PolyLineOpacity As Float, PolyLineWidth As Int)
+' Displays a Google map in a WebView with following parameters
+' Thanks go to  for his WebViewExtra library allowing to add event routines
+	' CenterLat        = latitude of map center in degrees
+	' CenterLng       = longitude of map center in degrees
+	' Zoom             = zomm index   0 - 21
+	' MapTypeControl   = true displays the map type control
+	' MapTypeControlID   = either ROADMAP, TERRAIN, SATELLITE or HYBRID
+	' DispZoomControl  = true displays the zoom control otherwise false
+	' ZoomControlPosition  = position of the scale control TOP_LEFT, TOP_CENTER, TOP_RIGHT, LEFT_CENTER, RIGHT_CENTER, BOTTOM_LEFT, BOTTOM_CENTER, BOTTOM_RIGHT
+	' ZoomControlStyle  = style of the scale control DEFAULT, SMALL or LARGE
+	' ScaleControl     = true displays the zoom control otherwise false
+	' ScaleControlPosition  = position of the scale control TOP_LEFT, TOP_CENTER, TOP_RIGHT, LEFT_CENTER, RIGHT_CENTER, BOTTOM_LEFT, BOTTOM_CENTER, BOTTOM_RIGHT
+	' DispMarkerCenter = true sets a marker on the center of the map
+	' MarkerPos 	  	 = List of GPS Locations of the markers 
+	' DipsMarkers  		 = true displays the markers
+	' MarkersClickable = the markers are clickable, doesn't work yet with WebView
+	' MarkersDragable  = the markers are dragable, doesn't give the new postition yet with WebView
+	' DispPolyline 	   = true displays a polyline with the markers as vertices
+	' PolyLineColor    = polyline color hexadecimal  #ff0000 = red  #00ff00 = green   #0000ff = blue
+	' PolyLineOpacity  = polyline opacity  0.0  transparent   1.0 full opaque
+	' PolyLineWidth    = polyline width in pixels
+	
+ 	Dim HtmlCode As String
+	Dim i, j, n As Int
+	Dim Pos As GPSLocation
+	HtmlCode = "<!DOCTYPE html><html><head><meta name='viewport' content='initial-scale=1.0, user-scalable=no' /><style type='text/css'>  html { height: 100% }  body { height: 100%; margin: 0px; padding: 0px }#map_canvas { height: 100% }</style><script type='text/javascript' src='http://maps.google.com/maps/api/js?sensor=true'></script><script type='text/javascript'> function initialize() {var latlng = new google.maps.LatLng(" & CenterLat & "," & CenterLng & "); var myOptions = { zoom: "&Zoom&", center: latlng, disableDefaultUI: true, draggable: " & MapDraggable & ", zoomControl: "& DispZoomControl & ", zoomControlOptions: {position: google.maps.ControlPosition." & ZoomControlPosition & ", style: google.maps.ZoomControlStyle." & ZoomControlStyle & "}, scaleControl: " & DispScaleControl & ", scaleControlOptions: {position: google.maps.ControlPosition." & ScaleControlPosition & "}, mapTypeControl: "& MapTypeControl& ", mapTypeId: google.maps.MapTypeId."& MapTypeControlID& " }; var map = new google.maps.Map(document.getElementById('map_canvas'),  myOptions)" 
+	
+	If MapSetDraggable = False Then
+		' adds mousedown event, returns the lat/lng of the mouse position
+		HtmlCode = HtmlCode & ";google.maps.event.addListener(map, 'mousedown', function(mouseEvent){"
+		HtmlCode = HtmlCode & "var lat=mouseEvent.latLng.lat();"
+		HtmlCode = HtmlCode & "var lng=mouseEvent.latLng.lng();"
+		HtmlCode = HtmlCode & "B4A.CallSub('MapViewer_MouseDown', true, lat, lng); })"
+
+		' adds mousemove event, returns the lat/lng of the mouse position
+		HtmlCode = HtmlCode & ";google.maps.event.addListener(map, 'mousemove', function(mouseEvent){"
+		HtmlCode = HtmlCode & "var lat=mouseEvent.latLng.lat();"
+		HtmlCode = HtmlCode & "var lng=mouseEvent.latLng.lng();"
+		HtmlCode = HtmlCode & "B4A.CallSub('MapViewer_MouseMove', true, lat, lng); })"
+
+		' adds mouseup event, returns the lat/lng of the mouse position
+		HtmlCode = HtmlCode & ";google.maps.event.addListener(map, 'mouseup', function(mouseEvent){"
+		HtmlCode = HtmlCode & "var lat=mouseEvent.latLng.lat();"
+		HtmlCode = HtmlCode & "var lng=mouseEvent.latLng.lng();"
+		HtmlCode = HtmlCode & "B4A.CallSub('MapViewer_MouseUp', true, lat, lng); })"
+	Else
+		' adds click event, returns the lat/lng of the clicked position
+		HtmlCode = HtmlCode & ";google.maps.event.addListener(map, 'click', function(mouseEvent){"
+		HtmlCode = HtmlCode & "var lat=mouseEvent.latLng.lat();"
+		HtmlCode = HtmlCode & "var lng=mouseEvent.latLng.lng();"
+		HtmlCode = HtmlCode & "B4A.CallSub('MapViewer_Click', true, lat, lng); })"
+
+		' add center_changed event
+		HtmlCode = HtmlCode & ";google.maps.event.addListener(map, 'center_changed', function() {"
+		HtmlCode = HtmlCode & "var centerlatlng = map.getCenter();"
+		HtmlCode = HtmlCode & "B4A.CallSub('MapViewer_CenterChanged', true, centerlatlng.lat(), centerlatlng.lng() );})"
+	End If
+	
+	' adds zoom_changed event, returns the zoom level
+	HtmlCode = HtmlCode & "; google.maps.event.addListener(map, 'zoom_changed', function() {"
+	HtmlCode = HtmlCode & "var zoomLevel = map.getZoom();"
+	HtmlCode = HtmlCode & "B4A.CallSub('MapViewer_ZoomChanged', true, zoomLevel);"
+	HtmlCode = HtmlCode & " })"
+
+	If DispMapTypeControl = True Then
+		' adds maptypeid_changed event, no return value
+		HtmlCode = HtmlCode & "; google.maps.event.addListener(map, 'maptypeid_changed', function() {"
+		HtmlCode = HtmlCode & "var mapType = map.getMapTypeId();"
+		HtmlCode = HtmlCode & "B4A.CallSub('MapViewer_MapTypeControlChanged', true, mapType);"
+		HtmlCode = HtmlCode & " })"
+	End If
+	
+	' displays a marker on the map center
+	If DispMarkerCenter = True Then	
+		HtmlCode = HtmlCode & "; var markerc = new google.maps.Marker({	position: new google.maps.LatLng(" & CenterLat & "," & CenterLng & "),map: map, title: '',clickable: false,icon: 'http://www.google.com/mapfiles/arrow.png' })"
+	End If
+	
+	If MarkerPos.Size > 0 Then
+	' displays a polyline between points
+		j = MarkerPos.Size - 1
+		If DispPolyline = True And j > 0 Then
+			' defines an array 'points'
+			HtmlCode = HtmlCode & "; var points = [];"
+			For i = 0 To j
+				Pos = MarkerPos.Get(i)
+				' sets the current position to the 'point' variabledefines an array 'points'
+				HtmlCode = HtmlCode & "var point = new google.maps.LatLng(" & Pos.Latitude & "," & Pos.Longitude & ");"
+				' adds the current poit to the points array
+				HtmlCode = HtmlCode & "points.push(point);"
+			Next
+			' defines the polyline
+			HtmlCode = HtmlCode & "; var polyline = new google.maps.Polyline({path: points, strokeColor: '" & PolyLineColor & "', strokeOpacity: " & PolyLineOpacity & ", strokeWeight: " & PolyLineWidth & "});"
+			' draws the polyline
+
+
+			HtmlCode = HtmlCode & "polyline.setMap(map);"
+		End If
+
+		' displays markers on the map
+		GPSMarkerIndexes.Initialize
+		If DispMarkers = True Then	' checks if display of markers enabled
+			For i = 0 To j
+				Pos = MarkerPos.Get(i)
+				If Pos.Marker = True Then	' checks if the current marker should be displayed
+					GPSMarkerIndexes.Add(i)
+					n = GPSMarkerIndexes.Size - 1
+					' sets the current position to a marker
+					HtmlCode = HtmlCode & "; var marker" & n & " = new google.maps.Marker({	position: new google.maps.LatLng(" & Pos.Latitude & "," & Pos.Longitude & "),map: map, title: 'Test" & i & "',clickable: " & MarkersClickable & ", draggable: " & MarkersDragable & ", icon: 'http://chart.apis.google.com/"
+					If i = 0 Then
+						' Displays a green A pin	
+						' A|00FF00|000000   A = character to display, 00FF00 fill color  000000 text color
+						HtmlCode = HtmlCode & "chart?chst=d_map_pin_letter&chld=A|00FF00|000000'})"
+					Else If i = j Then
+						' Displays a green 
+						HtmlCode = HtmlCode & "chart?chst=d_map_pin_letter&chld=" & Chr((n Mod 26) + 65) & "|FF0000|000000'})"
+					Else
+						' Displays a yellow pin 
+						HtmlCode = HtmlCode & "chart?chst=d_map_pin_letter&chld=" & Chr((n Mod 26) + 65) & "|FFFF00|000000'})"
+					End If
+
+					' Adds the 'dragend' event listener
+					HtmlCode = HtmlCode & "; google.maps.event.addListener(marker" & n & ", 'dragend', function(mouseEvent) {"
+					' mouseEvent.latLng = final drag position
+					HtmlCode = HtmlCode & "var lat = mouseEvent.latLng.lat();"
+					HtmlCode = HtmlCode & "var lng = mouseEvent.latLng.lng();"
+					HtmlCode = HtmlCode & "var latlng1 = new google.maps.LatLng(lat, lng); "
+					' Centers the map to that location
+					HtmlCode = HtmlCode & "map.setCenter(latlng1);"
+					' Adds the B4A 'MapViewer_MarkerDragged' event call
+					HtmlCode = HtmlCode & "B4A.CallSub('MapViewer_MarkerDragEnd', true, '" & i & "', lat, lng); "
+
+					'new
+					' this works
+					HtmlCode = HtmlCode & "polyline.setMap(null);"
+					HtmlCode = HtmlCode & "points.push(latlng1);"
+					HtmlCode = HtmlCode & "var polyline1 = new google.maps.Polyline({path: points, strokeColor: '00ff00', strokeOpacity: " & PolyLineOpacity & ", strokeWeight: " & PolyLineWidth & "});"
+					HtmlCode = HtmlCode & "polyline1.setMap(map);"
+					' this works
+					
+'					HtmlCode = HtmlCode & "polyline.setMap(null);"
+'					HtmlCode = HtmlCode & "var pnt = new google.maps.LatLng(points.getAt(" & i & "));"
+'					HtmlCode = HtmlCode & "pnt = latlng1 ;"
+'					HtmlCode = HtmlCode & "points.push(latlng1);"
+'					HtmlCode = HtmlCode & "points.setAt(" & i & ", pnt);"
+''					HtmlCode = HtmlCode & "var polyline1 = new google.maps.Polyline({path: points, strokeColor: '" & PolyLineColor & "', strokeOpacity: " & PolyLineOpacity & ", strokeWeight: " & PolyLineWidth & "});"
+					HtmlCode = HtmlCode & "var polyline1 = new google.maps.Polyline({path: points, strokeColor: '00ff00', strokeOpacity: " & PolyLineOpacity & ", strokeWeight: " & PolyLineWidth & "});"
+					HtmlCode = HtmlCode & "polyline1.setMap(map);"
+					
+					' end new
+					HtmlCode = HtmlCode & "})"
+				End If
+			Next
+		End If	
+	End If
+	HtmlCode = HtmlCode & "; }</script></head><body onload='initialize()'>  <div id='map_canvas' style='width:100%; height:100%'></div></body></html>"
+	
+	MapViewer.LoadHtml(HtmlCode)
+
+End Sub
+
+Sub GPS1_LocationChanged (Location1 As Location)
+	Dim loc As GPSLocation
+	
+	loc.Initialize
+  lblLatitude.Text = NumberFormat(Location1.Latitude, 1, 6)
+  lblLongitude.Text = NumberFormat(Location1.Longitude, 1, 6)
+	loc.Longitude = Location1.Longitude
+	loc.Latitude = Location1.Latitude
+	loc.Time = Location1.Time
+
+	If Location1.AltitudeValid = True Then
+		lblAltitude.Text = NumberFormat2(Location1.Altitude, 1, 1, 1, False)
+		loc.Altitude = Location1.Altitude
+	Else
+		lblAltitude.Text = "- - -"
+	End If
+	 
+	If Location1.BearingValid = True Then
+		lblBearing.Text = Location1.Bearing
+		loc.Bearing = NumberFormat(Location1.Bearing, 1, 1)
+	Else
+		lblBearing.Text = "- - -"
+	End If
+	
+	If Location1.SpeedValid = True Then
+		lblSpeed.Text = Location1.Speed
+		loc.Speed = Location1.Speed
+	Else
+		lblSpeed.Text = "- - -"
+	End If
+	
+	If GPSPath.Size = 0 Then
+		loc.Distance = 0
+		loc.DistTot = 0
+		GPSPathDistTotPrev = 0
+	Else
+		loc.Distance = GPSPathPreviuous.DistanceTo(Location1)
+		GPSPathDistTotPrev = GPSPathDistTotPrev + loc.Distance
+		loc.DistTot = GPSPathDistTotPrev
+	End If
+	GPSPathPreviuous = Location1
+
+	If SaveGPSPath = True Then
+		GPSPath.Add(loc)
+		Activity.Title = "จุดเส้นทาง : " & GPSPath.Size
+	End If
+	
+	If GPSDispWindrose = True Then
+		DrawNeedle(loc.Bearing)
+	End If
+
+	If ShowGPSOnMap = True Then
+		Dim xc, yc As Float
+		xc = (Location1.Longitude - MapCenter.Longitude) / MapScaleLng + MapViewer.Width / 2
+		yc = (MapCenter.Latitude - Location1.Latitude) / MapScaleLat + MapViewer.Height / 2
+		If xc < 10%x Or xc > 90%x Or yc < 20%y Or yc > 80%y Then
+			MapCenter.Latitude = Location1.Latitude
+			MapCenter.Longitude = Location1.Longitude
+			MapShow
+		End If
+		DrawGPSPosition(xc, yc)
+	End If
+End Sub
+
+Sub SaveSetup
+	Dim tw As TextWriter
+
+	tw.Initialize(File.OpenOutput(File.DirInternal, "Setup.txt", False))
+	tw.WriteLine("v2")						' used for version control
+	tw.WriteLine(MapDefaultLat)
+	tw.WriteLine(MapDefaultLng)
+	tw.WriteLine(MapSetDraggable)
+	tw.WriteLine(GPSMinTime)
+	tw.WriteLine(GPSMinDistance)
+	tw.WriteLine(GPSDispSpeed)
+	tw.WriteLine(GPSDispBearing)
+	tw.WriteLine(GPSDispWindrose)
+	tw.WriteLine(GPSFilterDelta)
+	tw.WriteLine(MapDefaultZoomLevelIndex)
+	tw.WriteLine(MapDefaultZoomLevel)
+	tw.WriteLine(MapLineWidthIndex)
+	tw.WriteLine(MapLineWidth)
+	tw.WriteLine(MapLineColorIndex)
+	tw.WriteLine(MapLineColor)
+	tw.WriteLine(MapLineOpacityIndex)
+	tw.WriteLine(MapLineOpacity)
+	tw.WriteLine(MapMarkerClickable)
+	tw.WriteLine(MapMarkerDragable)
+	tw.WriteLine(DispMapTypeControl)
+	tw.WriteLine(DispMapTypeControlID)				' added v1
+	tw.WriteLine(DispMapTypeControlIDIndex)		' added v2
+	tw.WriteLine(DispMapZoomControlType)			' added v2
+	tw.WriteLine(DispMapZoomControlTypeIndex)	' added v2
+	tw.WriteLine(DispMapZoomControl)
+	tw.WriteLine(DispMapScaleControl)
+	tw.WriteLine(DispMapCenter)
+	tw.WriteLine(DispMapMarkers)
+	tw.WriteLine(DispMapPolylne)
+	tw.WriteLine(ShowGPSOnMap)
+	tw.WriteLine(SaveGPSPath)
+	tw.WriteLine(DrawGPSPath)
+	tw.WriteLine(AltitudeUnitIndex)
+	tw.WriteLine(SpeedUnitIndex)
+	tw.WriteLine(DistanceUnitIndex)
+	tw.Close
+End Sub
+
+Sub LoadSetup
+	Dim tr As TextReader
+	Dim version As String
+	Dim versionNb As Int
+	
+	tr.Initialize(File.OpenInput(File.DirInternal, "Setup.txt"))
+	version = tr.ReadLine							' used for version control
+	If version.CharAt(0) <> "v" Then
+		MapDefaultLat = version
+		versionNb = 0
+	Else
+		MapDefaultLat = tr.ReadLine
+		versionNb = version.SubString(1)
+	End If
+	MapDefaultLng = tr.ReadLine
+	MapSetDraggable = tr.ReadLine
+	GPSMinTime = tr.ReadLine
+	GPSMinDistance = tr.ReadLine
+	GPSDispSpeed = tr.ReadLine
+	GPSDispBearing = tr.ReadLine
+	GPSDispWindrose = tr.ReadLine
+	GPSFilterDelta = tr.ReadLine
+	MapDefaultZoomLevelIndex = tr.ReadLine
+	MapDefaultZoomLevel = tr.ReadLine
+	MapZoomLevel = MapDefaultZoomLevel
+	MapLineWidthIndex = tr.ReadLine
+	MapLineWidth = tr.ReadLine
+	MapLineColorIndex = tr.ReadLine
+	MapLineColor = tr.ReadLine
+	MapLineOpacityIndex = tr.ReadLine
+	MapLineOpacity = tr.ReadLine
+	MapMarkerClickable = tr.ReadLine
+	MapMarkerDragable = tr.ReadLine
+	DispMapTypeControl = tr.ReadLine
+	If versionNb >= 1 Then
+		DispMapTypeControlID = tr.ReadLine
+		If versionNb >= 2 Then
+			DispMapTypeControlIDIndex = tr.ReadLine
+			DispMapZoomControlType = DispMapZoomControlTypeText(DispMapZoomControlTypeIndex)
+			DispMapZoomControlType = tr.ReadLine
+			DispMapZoomControlTypeIndex = tr.ReadLine
+		End If
+	End If
+	DispMapZoomControl = tr.ReadLine
+	DispMapScaleControl = tr.ReadLine
+	DispMapCenter = tr.ReadLine
+	DispMapMarkers = tr.ReadLine
+	DispMapPolylne = tr.ReadLine
+	ShowGPSOnMap = tr.ReadLine
+	SaveGPSPath = tr.ReadLine
+	DrawGPSPath = tr.ReadLine
+	AltitudeUnitIndex = tr.ReadLine
+	SpeedUnitIndex = tr.ReadLine
+	DistanceUnitIndex = tr.ReadLine
+	tr.Close
+End Sub
+
+Sub DrawCursor(Lat As Double, Lng As Double)
+	' draes the cursor position as a cross hair
+	cvsMap.DrawLine(MapXCursor, 0, MapXCursor, pnlMap.Height, Colors.Transparent, 1dip)
+	cvsMap.DrawLine(0, MapYCursor, pnlMap.Width, MapYCursor, Colors.Transparent, 1dip)
+	
+	MapXCursor = (Lng - MapCenter.Longitude) / MapScaleLng + MapViewer.Width / 2
+	MapYCursor = (MapCenter.Latitude - Lat) / MapScaleLat + MapViewer.Height / 2
+
+	cvsMap.DrawLine(MapXCursor, 0, MapXCursor, pnlMap.Height, Colors.Red, 1dip)
+	cvsMap.DrawLine(0, MapYCursor, pnlMap.Width, MapYCursor, Colors.Red, 1dip)
+	pnlMap.Invalidate
+End Sub
+
+Sub DrawGPSPosition(xc As Float, yc As Float)
+	Dim x1, y1, x2, y2 As Float
+	Dim dd1, dd2, r As Float
+
+	cvsMap.DrawRect(rectMapPos, Colors.Transparent, True, 1)
+	pnlMap.Invalidate2(rectMapPos)
+	
+	dd1 = 20dip
+	dd2 = 20dip
+	r = 10dip
+	x1 = xc - dd1
+	y1 = yc - dd1
+	x2 = xc + dd2
+	y2 = yc + dd2
+	rectMapPos.Initialize(x1, y1, x2 + 1, y2 + 1)
+
+	cvsMap.DrawLine(x1, yc, x2, yc, Colors.Red, 1dip)
+	cvsMap.DrawLine(xc, y1, xc, y2, Colors.Red, 1dip)
+	cvsMap.DrawCircle(xc, yc, r, Colors.Red, False, 3dip)
+	pnlMap.Invalidate2(rectMapPos)
+End Sub
+
+Sub InitWindrose
+	' initializes the graphic of the windrose depending on the screen size
+	Dim a, r1, r2, r3, r4, r5, xc, yc, x1, y1 As Float
+	Dim i, col As Int
+	
+	Dim rectDispGPSWindrose As Rect
+	rectDispGPSWindrose.Initialize(0, 0, pnlDispGPSWindrose.Width, pnlDispGPSWindrose.Height)
+	cvsDispGPSWindrose.DrawRect(rectDispGPSWindrose, Colors.Transparent, True, 1)
+	xc = pnlDispGPSWindrose.Width / 2
+	yc = xc
+	r4 = pnlDispGPSWindrose.Width / 2 - 2dip
+	cvsDispGPSWindrose.DrawCircle(xc, yc, r4, WindroseColor, False, 2dip)
+	col = WindroseTicksColor
+
+	If Activity.Width = 320 Then
+		r3 = r4 - 10dip
+		r2 = r3 - 5dip
+		r1 = r2 - 5dip
+		For i = 0 To 359 Step 5
+			a = i
+			If i Mod 90 = 0 Then
+				cvsDispGPSWindrose.DrawLine(xc + r1 * SinD(a), yc + r1 * CosD(a), xc + r4 * SinD(a), yc + r4 * CosD(a), col, 5)
+			Else If i Mod 45 = 0 Then
+				cvsDispGPSWindrose.DrawLine(xc + r2 * SinD(a), yc + r2 * CosD(a), xc + r4 * SinD(a), yc + r4 * CosD(a), col, 5)
+			Else If i Mod 15 = 0 Then
+				cvsDispGPSWindrose.DrawLine(xc + r2 * SinD(a), yc + r2 * CosD(a), xc + r4 * SinD(a), yc + r4 * CosD(a), col, 3)
+			Else
+				cvsDispGPSWindrose.DrawLine(xc + r3 * SinD(a), yc + r3 * CosD(a), xc + r4 * SinD(a), yc + r4 * CosD(a), col, 1.1)
+		End If
+		Next
+	Else
+		r3 = r4 - 10dip
+		r2 = r3 - 5dip
+		r1 = r2 - 10dip
+		For i = 0 To 359 Step 2
+			a = i
+			If i Mod 90 = 0 Then
+				cvsDispGPSWindrose.DrawLine(xc + r1 * SinD(a), yc + r1 * CosD(a), xc + r4 * SinD(a), yc + r4 * CosD(a), col, 5)
+			Else If i Mod 10 = 0 Then
+				cvsDispGPSWindrose.DrawLine(xc + r2 * SinD(a), yc + r2 * CosD(a), xc + r4 * SinD(a), yc + r4 * CosD(a), col, 5)
+			Else
+				cvsDispGPSWindrose.DrawLine(xc + r3 * SinD(a), yc + r3 * CosD(a), xc + r4 * SinD(a), yc + r4 * CosD(a), col, 1.1)
+			End If
+		Next
+	End If
+	pnlDispGPSWindrose.Invalidate
+	
+End Sub
+
+Sub InitNeedle
+	' initializes the graphic of the windrose needle depending on the screen size
+	Dim pth As Path
+	
+	imvNeedle.Height = pnlDispGPSWindrose.Height
+	imvNeedle.Width = 22dip
+	rectNeedleSrc.Initialize(0, 0, imvNeedle.Width, imvNeedle.Height)
+	rectNeedleDest.Initialize((pnlDispGPSWindrose.Width - imvNeedle.Width) / 2, 0, (pnlDispGPSWindrose.Width + imvNeedle.Width) / 2, imvNeedle.Height)
+	rectDispGPSNeedle.Initialize(0, 0, pnlDispGPSNeedle.Width, pnlDispGPSNeedle.Height)
+	csvNeedle.Initialize(imvNeedle)
+
+	pth.Initialize(imvNeedle.Width / 2, 0)
+	pth.LineTo(imvNeedle.Width -7dip, imvNeedle.Height / 2)
+	pth.LineTo(7dip, imvNeedle.Height / 2)
+	
+	csvNeedle.DrawColor(Colors.Transparent)
+	csvNeedle.DrawPath(pth, WindroseNeedleColor, True, 1)
+	csvNeedle.DrawCircle(imvNeedle.Width / 2, imvNeedle.Height / 2, imvNeedle.Width / 2, WindroseNeedleColor, True, 1)
+	csvNeedle.DrawCircle(imvNeedle.Width / 2, imvNeedle.Height / 2, 3dip, Colors.Transparent, True, 1)
+	bmpNeedle = imvNeedle.Bitmap
+	DrawNeedle(142)
+	
+	lblAltitude.Text = "- - -"
+	lblBearing.Text = "- - -"
+	lblLatitude.Text = "- - -"
+	lblLongitude.Text = "- - -"
+	lblSpeed.Text = "- - -"
+End Sub
+
+Sub DrawNeedle(Angle As Float)
+	' draws the needle with the given angle
+	cvsDispGPSNeedle.DrawRect(rectDispGPSNeedle, Colors.Transparent, True, 1)
+	cvsDispGPSNeedle.DrawBitmapRotated(bmpNeedle, rectNeedleSrc, rectNeedleDest, Angle)
+	pnlDispGPSNeedle.Invalidate
+End Sub
+
+
